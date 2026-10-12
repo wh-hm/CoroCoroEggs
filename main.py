@@ -52,7 +52,8 @@ if (BASE_DIR / "images").is_dir():
 
 
 class VoiceData(BaseModel):
-    text: str = Field(min_length=1, max_length=5000)
+    recognized_text: str = Field(min_length=1, max_length=5000)
+    category: str = Field(min_length=1, max_length=50)
 
 
 class PetState(BaseModel):
@@ -170,18 +171,26 @@ def pass_time_api(pet: PetState):
     return state
 
 
+
 @app.post("/api/voice")
 def receive_voice(data: VoiceData):
-    text = data.text.strip()
+    recognized_text = data.recognized_text.strip()
+    category = data.category.strip()
 
-    if not text:
+    if not recognized_text:
         raise HTTPException(
             status_code=400,
             detail="音声認識結果が空です。",
         )
 
-    # ① 先に音声認識結果をDBへ保存
-    log_id = save_voice_text(text)
+    if not category:
+        raise HTTPException(
+            status_code=400,
+            detail="音声認識カテゴリー結果が空です。",
+        )
+
+    # ① 音声認識結果をDBへ保存
+    log_id = save_voice_text(recognized_text, category)
 
     # ② 保存後に成長条件を判定
     total_logs = count_voice_logs()
@@ -213,7 +222,8 @@ def receive_voice(data: VoiceData):
     return {
         "message": pet["message"],
         "id": log_id,
-        "text": text,
+        "recognized_text": recognized_text,
+        "category": category,
         "total_logs": total_logs,
         "growth_words": growth_words,
         "stage": pet["stage"],

@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web育成ゲーム - ペット育成</title>
+    <title>マイペット</title>
 
     <style>
         * {
@@ -11,60 +12,65 @@
             margin: 0;
             padding: 0;
         }
-
+        
         body {
             font-family: 'Helvetica Neue', Arial,
                 'Hiragino Kaku Gothic ProN',
                 'Hiragino Sans', Meiryo, sans-serif;
             background: linear-gradient(135deg, #a8edd9 0%, #fed6e3 100%);
             min-height: 100vh;
+            padding: 24px;
             display: flex;
             justify-content: center;
-            align-items: center;
-            padding: 20px;
+            align-items: flex-start;
         }
 
         .container {
             background: #ffffff;
             width: 100%;
-            max-width: 420px;
+            max-width: 760px;
             padding: 24px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
             text-align: center;
         }
 
         h1 {
-            font-size: 1.5rem;
+            margin-bottom: 20px;
             color: #333;
-            margin-bottom: 16px;
+            font-size: 1.8rem;
+            text-align: center;
         }
 
+        /* ペットと音声記録のエリア */
         .screen {
-            background: #f0f8ff;
-            border: 3px solid #e0e0e0;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 20px;
-            position: relative;
-            min-height: 220px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: #f0f8ff;
+            border: 3px solid #e0e0e0;
+            border-radius: 20px;
         }
 
+        /* ペット画像をメインに表示 */
         .pet-avatar {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
-            margin-bottom: 10px;
+            min-height: 340px;
+            padding: 10px;
+            background: #ffffff;
+            border-radius: 18px;
         }
 
         .pet-avatar img {
-            width: 140px;
-            height: 140px;
+            display: block;
+            width: 100%;
+            max-width: 380px;
+            height: 340px;
             object-fit: contain;
             transition: transform 0.3s ease;
             user-select: none;
@@ -80,404 +86,559 @@
             }
 
             50% {
-                transform: translateY(-15px);
+                transform: translateY(-10px);
             }
         }
 
-        .status-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .status-item {
-            margin-bottom: 10px;
-        }
-
-        .status-label {
-            font-size: 0.9rem;
-            color: #555;
+        /* 音声記録エリア */
+        .chat-section {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .bar-bg {
-            background: #eee;
-            height: 12px;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-
-        .bar-fill {
-            height: 100%;
-            width: 50%;
-            border-radius: 6px;
-            transition: width 0.3s ease, background-color 0.3s ease;
-        }
-
-        .btn-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+            flex-direction: column;
+            width: 100%;
             gap: 10px;
         }
 
-        button {
-            padding: 12px;
-            font-size: 1rem;
-            font-weight: bold;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            background: #4CAF50;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        button:hover {
-            opacity: 0.9;
-        }
-
-        button:active {
-            transform: translateY(2px);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        button.play {
-            background: #2196F3;
-        }
-
-        button.sleep {
-            background: #9C27B0;
-        }
-
-        button.reset {
-            background: #f44336;
-            grid-column: span 2;
-            margin-top: 5px;
-        }
-
-        .message-box {
-            font-size: 0.9rem;
-            color: #444;
-            background: #fff8dc;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin-top: 10px;
-            min-height: 38px;
+        .chat-title {
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 8px;
+            color: #555;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        /* この部分だけスクロール */
+        .chat-history {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+            width: 100%;
+            height: 240px;
+            padding: 16px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 14px;
+            text-align: left;
+            scroll-behavior: smooth;
+        }
+
+        /* スクロールバー */
+        .chat-history::-webkit-scrollbar {
+            width: 7px;
+        }
+
+        .chat-history::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-history::-webkit-scrollbar-thumb {
+            background: #c5c5c5;
+            border-radius: 10px;
+        }
+
+        .chat-history::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        /* 吹き出しと時刻 */
+        .chat-entry {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
             width: 100%;
         }
 
+        .chat-message {
+            display: inline-block;
+            max-width: 90%;
+            padding: 11px 16px;
+            background: #fff1c9;
+            color: #333;
+            border-radius: 16px 16px 16px 4px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-time {
+            padding-left: 4px;
+            color: #888;
+            font-size: 0.72rem;
+        }
+
+        /* 記録がないとき */
+        .chat-empty {
+            display: flex;
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 8px;
+            color: #888;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            text-align: center;
+        }
+
+        /* エラーメッセージ */
         .error-message {
+            width: 100%;
             color: #d32f2f;
             font-size: 0.85rem;
-            margin-top: 10px;
             overflow-wrap: anywhere;
+            text-align: left;
         }
+
+        /* スマートフォン対応 */
+        @media (max-width: 600px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 16px;
+                border-radius: 18px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 16px;
+            }
+
+            .screen {
+                padding: 12px;
+                gap: 16px;
+            }
+
+            .pet-avatar {
+                min-height: 240px;
+                padding: 6px;
+            }
+
+            .pet-avatar img {
+                height: 240px;
+                max-width: 100%;
+            }
+
+            .chat-history {
+                height: 220px;
+                padding: 12px;
+            }
+
+            .chat-message {
+                max-width: 95%;
+                font-size: 0.9rem;
+            }
+        }
+
+        
+        /* スマートフォン対応 */
+        @media (max-width: 600px) {
+            html {
+                width: 100%;
+                min-height: 100%;
+            }
+
+            body {
+                display: block;
+                padding: 10px;
+                min-height: 100vh;
+
+            }
+
+            .container {
+                width: 100%;
+                max-width: none;
+                min-height: 0;
+                height: calc(100vh - 20px);
+                padding: 14px;
+                border-radius: 18px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+                margin-bottom: 14px;
+            }
+
+            .screen {
+                width: 100%;
+                padding: 12px;
+                gap: 16px;
+                border-radius: 16px;
+            }
+
+            /* ペットを大きく表示 */
+            .pet-avatar {
+                width: 100%;
+                min-height: 0;
+                padding: 8px;
+                border-radius: 14px;
+            }
+
+            .pet-avatar img {
+                width: 100%;
+                max-width: 100%;
+                height: min(48vh, 360px);
+                min-height: 220px;
+                object-fit: contain;
+            }
+
+            /* 音声記録 */
+            .chat-section {
+                width: 100%;
+                gap: 8px;
+            }
+
+            .chat-title {
+                font-size: 0.95rem;
+            }
+
+            /* 記録欄だけスクロール */
+            .chat-history {
+                width: 100%;
+                height: 30vh;
+                /* min-height: 160px; */
+                /* max-height: 260px; */
+                padding: 12px;
+                gap: 10px;
+                border-radius: 12px;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                height: calc(100vh - 575px);
+            }
+
+            .chat-message {
+                max-width: 95%;
+                padding: 10px 13px;
+                font-size: 0.9rem;
+                line-height: 1.6;
+            }
+
+            .chat-time {
+                font-size: 0.7rem;
+            }
+
+            .chat-empty {
+                font-size: 0.9rem;
+            }
+
+            .error-message {
+                font-size: 0.8rem;
+            }
+        }
+
+        /* 特に画面の高さが小さいスマートフォン */
+        @media (max-width: 600px) and (max-height: 700px) {
+            .pet-avatar img {
+                height: 35vh;
+                min-height: 180px;
+            }
+
+            .chat-history {
+                height: 25vh;
+                min-height: 130px;
+                max-height: 200px;
+            }
+        }
+
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1 id="pet-title">🌱 マイペット</h1>
+        <div>
+            <h1 id="pet-title">🌱 マイペット</h1>
 
-        <div class="screen">
-            <div class="pet-avatar">
-                <img
-                    id="pet-avatar"
-                    src="/images/toimaru.png"
-                    alt="ペット"
-                >
-            </div>
+            <div class="screen">
 
-            <div class="message-box" id="message">
-                たまごを温めて育てよう！
-            </div>
-        </div>
-
-        <div class="status-group">
-            <div class="status-item">
-                <div class="status-label">
-                    <span>おなか</span>
-                    <span id="val-hunger">50%</span>
+                <!-- ペット画像 -->
+                <div class="pet-avatar">
+                    <img
+                        id="pet-avatar"
+                        src="/images/toimaru.png"
+                        alt="ペット"
+                    >
                 </div>
-                <div class="bar-bg">
+
+                <!-- 音声記録 -->
+                <div class="chat-section">
+                    <div class="chat-title">
+                        💬 音声の記録
+                    </div>
+
                     <div
-                        id="bar-hunger"
-                        class="bar-fill"
-                        style="width: 50%; background: #ff9800;"
+                        class="chat-history"
+                        id="chat-history"
+                        aria-live="polite"
+                        aria-label="音声認識テキストの履歴"
+                    >
+                        <div class="chat-empty" id="chat-empty">
+                            音声が届くのを待っているよ！
+                        </div>
+                    </div>
+
+                    <div
+                        id="error-message"
+                        class="error-message"
+                        role="status"
                     ></div>
                 </div>
-            </div>
 
-            <div class="status-item">
-                <div class="status-label">
-                    <span>たいりょく</span>
-                    <span id="val-energy">50%</span>
-                </div>
-                <div class="bar-bg">
-                    <div
-                        id="bar-energy"
-                        class="bar-fill"
-                        style="width: 50%; background: #4caf50;"
-                    ></div>
-                </div>
-            </div>
-
-            <div class="status-item">
-                <div class="status-label">
-                    <span>なつき度</span>
-                    <span id="val-affection">50%</span>
-                </div>
-                <div class="bar-bg">
-                    <div
-                        id="bar-affection"
-                        class="bar-fill"
-                        style="width: 50%; background: #e91e63;"
-                    ></div>
-                </div>
             </div>
         </div>
-
-        <div class="btn-grid">
-            <button class="feed" onclick="feedPet()">
-                🍚 ごはん
-            </button>
-
-            <button class="play" onclick="playPet()">
-                🎾 あそぶ
-            </button>
-
-            <button class="sleep" onclick="sleepPet()">
-                🌙 ねかせる
-            </button>
-
-            <button class="play" onclick="passTime()">
-                ⌛ なにもしない
-            </button>
-
-            <button class="reset" onclick="resetPet()">
-                🔄 はじめから
-            </button>
-        </div>
-
-        <div id="error-message" class="error-message"></div>
     </div>
 
     <script>
         // FastAPIのURL
         const API_BASE_URL = 'http://127.0.0.1:8000';
 
+        // 音声履歴を取得する間隔（ミリ秒）
+        const POLLING_INTERVAL = 3000;
+
+        // 取得済みの音声データID
+        const displayedIds = new Set();
+
+        // IDがないデータの重複表示を防ぐキー
+        const displayedKeys = new Set();
+
+        // ペットの状態
         let pet = {
             stage: 0,
-            hunger: 50,
-            energy: 50,
-            affection: 50,
-            turns: 0,
-            isAlive: true,
-            message: 'たまごを温めて育てよう！'
+            message: ''
         };
 
-        // 画面の状態を更新
-        function updateUI() {
-            document.getElementById('val-hunger').innerText =
-                pet.hunger + '%';
-            document.getElementById('bar-hunger').style.width =
-                pet.hunger + '%';
-
-            document.getElementById('val-energy').innerText =
-                pet.energy + '%';
-            document.getElementById('bar-energy').style.width =
-                pet.energy + '%';
-
-            document.getElementById('val-affection').innerText =
-                pet.affection + '%';
-            document.getElementById('bar-affection').style.width =
-                pet.affection + '%';
-
-            // ペット画像は常に /toimaru.png を表示する
-            document.getElementById('pet-avatar').src = '/images/toimaru.png';
-
-            // ゲームの状態をブラウザに保存
-            localStorage.setItem('web_pet_save', JSON.stringify(pet));
-
-            // 死亡時は操作ボタンを無効にする
-            document.querySelectorAll('.btn-grid button:not(.reset)')
-                .forEach(button => {
-                    button.disabled = !pet.isAlive;
-                });
-        }
-
-        // メッセージを表示して画像を跳ねさせる
-        function setMessage(msg) {
-            document.getElementById('message').innerText = msg;
-
-            const avatar = document.getElementById('pet-avatar');
-
-            avatar.classList.remove('bounce');
-
-            // アニメーションを再実行する
-            void avatar.offsetWidth;
-
-            avatar.classList.add('bounce');
-        }
-
         // エラー表示
-        function showError(msg = '') {
-            document.getElementById('error-message').innerText = msg;
+        function showError(message = '') {
+            document.getElementById('error-message').innerText = message;
         }
 
-        // FastAPIとの共通通信処理
-        async function sendAction(endpoint) {
-            showError('');
+        // 時刻を表示用に整える
+        function formatTime(value) {
+            if (!value) {
+                return '';
+            }
 
+            const date = new Date(value);
+
+            // 日付として解釈できない場合は、そのまま表示
+            if (Number.isNaN(date.getTime())) {
+                return String(value);
+            }
+
+            return date.toLocaleString('ja-JP', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // 吹き出しを追加する
+        function addChatMessage(text, time = '', id = null) {
+            const history = document.getElementById('chat-history');
+
+            // 同じIDのデータを二重表示しない
+            if (id !== null && id !== undefined) {
+                const idKey = String(id);
+
+                if (displayedIds.has(idKey)) {
+                    return;
+                }
+
+                displayedIds.add(idKey);
+            }
+
+            // 最初の案内メッセージを削除
+            const empty = document.getElementById('chat-empty');
+
+            if (empty) {
+                empty.remove();
+            }
+
+            // 吹き出しと時刻をまとめる要素
+            const entry = document.createElement('div');
+            entry.className = 'chat-entry';
+
+            // 吹き出し
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-message';
+
+            // HTMLとしてではなく文字列として表示
+            bubble.innerText = text;
+
+            entry.appendChild(bubble);
+
+            // 時刻がある場合のみ表示
+            if (time) {
+                const timeLabel = document.createElement('div');
+                timeLabel.className = 'chat-time';
+                timeLabel.innerText = formatTime(time);
+                entry.appendChild(timeLabel);
+            }
+
+            // 一番下に追加
+            history.appendChild(entry);
+
+            // 新しい吹き出しが見える位置までスクロール
+            history.scrollTop = history.scrollHeight;
+        }
+
+        // APIから返される履歴データの形式を整える
+        function normalizeVoiceLogs(data) {
+            if (Array.isArray(data)) {
+                return data;
+            }
+
+            if (data && Array.isArray(data.logs)) {
+                return data.logs;
+            }
+
+            if (data && Array.isArray(data.voice_logs)) {
+                return data.voice_logs;
+            }
+
+            if (data && Array.isArray(data.results)) {
+                return data.results;
+            }
+
+            console.error(
+                '音声履歴APIの返却形式を確認してください:',
+                data
+            );
+
+            return [];
+        }
+
+        // DBに保存されている音声履歴を取得
+        async function loadVoiceLogs() {
             try {
                 const response = await fetch(
-                    `${API_BASE_URL}${endpoint}`,
+                    `${API_BASE_URL}/api/voice/logs`,
                     {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(pet)
+                        method: 'GET',
+                        cache: 'no-store'
                     }
                 );
 
                 if (!response.ok) {
                     throw new Error(
-                        `サーバーエラー: ${response.status}`
+                        `音声履歴の取得に失敗しました（HTTP ${response.status}）`
                     );
                 }
 
                 const data = await response.json();
+                const logs = normalizeVoiceLogs(data);
 
-                pet = data;
+                // DBの取得順に従って表示
+                logs.forEach(log => {
+                    const text =
+                        log.recognized_text ??
+                        log.text ??
+                        log.message ??
+                        '';
 
-                setMessage(pet.message);
-                updateUI();
+                    const id = log.id ?? log.log_id ?? null;
+
+                    const time =
+                        log.received_at ??
+                        log.created_at ??
+                        log.timestamp ??
+                        '';
+
+                    // 空の文章は表示しない
+                    if (typeof text !== 'string' || !text.trim()) {
+                        return;
+                    }
+
+                    // IDがない場合は文章と時刻で重複を判定
+                    if (id === null || id === undefined) {
+                        const key = `${text}|${time}`;
+
+                        if (displayedKeys.has(key)) {
+                            return;
+                        }
+
+                        displayedKeys.add(key);
+                    }
+
+                    addChatMessage(text, time, id);
+                });
+
+                showError('');
 
             } catch (error) {
-                console.error('API通信エラー:', error);
+                console.error('音声履歴取得エラー:', error);
 
-                setMessage('サーバーとの通信に失敗しました');
                 showError(
-                    'FastAPIが起動しているか確認してください。'
+                    '音声履歴を取得できません。FastAPIとAPIのURLを確認してください。'
                 );
             }
         }
 
-        // 各操作
-        function feedPet() {
-            sendAction('/api/pet/feed');
-        }
-
-        function playPet() {
-            sendAction('/api/pet/play');
-        }
-
-        function sleepPet() {
-            sendAction('/api/pet/sleep');
-        }
-
-        function passTime() {
-            sendAction('/api/pet/pass_time');
-        }
-
-        // 最初からやり直す
-        async function resetPet() {
-            if (!confirm('最初からやり直しますか？')) {
-                return;
-            }
-
-            showError('');
-
+        // ペットの状態をDBから取得して画像を更新
+        async function loadPetFromDatabase() {
             try {
                 const response = await fetch(
-                    `${API_BASE_URL}/api/pet/init`
+                    `${API_BASE_URL}/api/pet/state`,
+                    {
+                        method: 'GET',
+                        cache: 'no-store'
+                    }
                 );
 
                 if (!response.ok) {
                     throw new Error(
-                        `サーバーエラー: ${response.status}`
+                        `ペット情報の取得に失敗しました（HTTP ${response.status}）`
                     );
-                }
-
-                pet = await response.json();
-
-                setMessage('たまごを温めて育てよう！');
-                updateUI();
-
-            } catch (error) {
-                console.error('初期化エラー:', error);
-
-                showError(
-                    '初期化できませんでした。FastAPIを確認してください。'
-                );
-            }
-        }
-
-        // 保存されたゲーム状態を読み込む
-        function loadGame() {
-            const saved = localStorage.getItem('web_pet_save');
-
-            if (saved) {
-                try {
-                    pet = JSON.parse(saved);
-                } catch (error) {
-                    console.error(
-                        '保存データの読み込みに失敗しました:',
-                        error
-                    );
-                }
-            }
-
-            updateUI();
-        }
-
-        async function loadPetFromDatabase() {
-            try {
-                const response = await fetch(
-                    `${API_BASE_URL}/api/pet/state`
-                );
-
-                if (!response.ok) {
-                    throw new Error('ペット情報を取得できませんでした');
                 }
 
                 const data = await response.json();
 
                 pet = {
-                    stage: data.stage,
-                    hunger: data.hunger,
-                    energy: data.energy,
-                    affection: data.affection,
-                    turns: data.turns,
-                    isAlive: data.isAlive,
-                    message: data.message
+                    stage: data.stage ?? 0,
+                    message: data.message ?? ''
                 };
 
-                setMessage(pet.message);
-                updateUI();
+                // 成長段階に応じた画像
+                // 実際の画像ファイルに合わせて変更可能
+                const avatar = document.getElementById('pet-avatar');
+
+                const images = {
+                    0: '/images/toimaru.png',
+                    1: '/images/toimaru.png',
+                    2: '/images/toimaru.png'
+                };
+
+                const nextImage = images[pet.stage] || images[0];
+
+                if (avatar.getAttribute('src') !== nextImage) {
+                    avatar.src = nextImage;
+                }
 
             } catch (error) {
-                console.error(error);
+                console.error('ペット状態取得エラー:', error);
             }
         }
 
-        // ページ読み込み時に実行
-        loadPetFromDatabase();
-        // loadGame();
+        // ページ読み込み時
+        async function initializePage() {
+            await Promise.all([
+                loadVoiceLogs(),
+                loadPetFromDatabase()
+            ]);
 
-        setInterval(() => {
-    loadPetFromDatabase();
-}, 3000);
+            // 音声履歴とペット状態を定期的に更新
+            setInterval(loadVoiceLogs, POLLING_INTERVAL);
+            setInterval(loadPetFromDatabase, POLLING_INTERVAL);
+        }
+
+        initializePage();
     </script>
 </body>
 </html>
