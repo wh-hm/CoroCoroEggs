@@ -1,258 +1,483 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Web育成ゲーム - ペット育成</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
-      background: linear-gradient(135deg, #a8edd9 0%, #fed6e3 100%);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-    .container {
-      background: #ffffff;
-      width: 100%;
-      max-width: 420px;
-      padding: 24px;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    h1 {
-      font-size: 1.5rem;
-      color: #333;
-      margin-bottom: 16px;
-    }
-    .screen {
-      background: #f0f8ff;
-      border: 3px solid #e0e0e0;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 20px;
-      position: relative;
-      min-height: 180px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    .pet-avatar {
-      font-size: 80px;
-      transition: transform 0.3s ease;
-      user-select: none;
-    }
-    .pet-avatar.bounce {
-      animation: bounce 0.5s ease;
-    }
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-15px); }
-    }
-    .status-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-    .status-item {
-      margin-bottom: 10px;
-    }
-    .status-label {
-      font-size: 0.9rem;
-      color: #555;
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 4px;
-    }
-    .bar-bg {
-      background: #eee;
-      height: 12px;
-      border-radius: 6px;
-      overflow: hidden;
-    }
-    .bar-fill {
-      height: 100%;
-      width: 50%;
-      border-radius: 6px;
-      transition: width 0.3s ease, background-color 0.3s ease;
-    }
-    .btn-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    button {
-      padding: 12px;
-      font-size: 1rem;
-      font-weight: bold;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      background: #4CAF50;
-      color: white;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: background 0.2s, transform 0.1s;
-    }
-    button:hover {
-      opacity: 0.9;
-    }
-    button:active {
-      transform: translateY(2px);
-    }
-    button.play { background: #2196F3; }
-    button.sleep { background: #9C27B0; }
-    button.reset { background: #f44336; grid-column: span 2; margin-top: 5px; }
-    .message-box {
-      font-size: 0.9rem;
-      color: #444;
-      background: #fff8dc;
-      padding: 8px 12px;
-      border-radius: 8px;
-      margin-top: 10px;
-      min-height: 38px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web育成ゲーム - ペット育成</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial,
+                'Hiragino Kaku Gothic ProN',
+                'Hiragino Sans', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #a8edd9 0%, #fed6e3 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 420px;
+            padding: 24px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .screen {
+            background: #f0f8ff;
+            border: 3px solid #e0e0e0;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            min-height: 220px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pet-avatar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .pet-avatar img {
+            width: 140px;
+            height: 140px;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            user-select: none;
+        }
+
+        .pet-avatar img.bounce {
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+        }
+
+        .status-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .status-item {
+            margin-bottom: 10px;
+        }
+
+        .status-label {
+            font-size: 0.9rem;
+            color: #555;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .bar-bg {
+            background: #eee;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 50%;
+            border-radius: 6px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:active {
+            transform: translateY(2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button.play {
+            background: #2196F3;
+        }
+
+        button.sleep {
+            background: #9C27B0;
+        }
+
+        button.reset {
+            background: #f44336;
+            grid-column: span 2;
+            margin-top: 5px;
+        }
+
+        .message-box {
+            font-size: 0.9rem;
+            color: #444;
+            background: #fff8dc;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .error-message {
+            color: #d32f2f;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            overflow-wrap: anywhere;
+        }
+    </style>
 </head>
+
 <body>
+    <div class="container">
+        <h1 id="pet-title">🌱 マイペット</h1>
 
-<div class="container">
-  <h1 id="pet-title">🌱 マイペット</h1>
+        <div class="screen">
+            <div class="pet-avatar">
+                <img
+                    id="pet-avatar"
+                    src="/images/toimaru.png"
+                    alt="ペット"
+                >
+            </div>
 
-  <div class="screen">
-    <div id="pet-avatar" class="pet-avatar">🥚</div>
-    <div class="message-box" id="message">たまごを温めて育てよう！</div>
-  </div>
+            <div class="message-box" id="message">
+                たまごを温めて育てよう！
+            </div>
+        </div>
 
-  <div class="status-group">
-    <div class="status-item">
-      <div class="status-label"><span>おなか</span><span id="val-hunger">50%</span></div>
-      <div class="bar-bg"><div id="bar-hunger" class="bar-fill" style="width: 50%; background: #ff9800;"></div></div>
+        <div class="status-group">
+            <div class="status-item">
+                <div class="status-label">
+                    <span>おなか</span>
+                    <span id="val-hunger">50%</span>
+                </div>
+                <div class="bar-bg">
+                    <div
+                        id="bar-hunger"
+                        class="bar-fill"
+                        style="width: 50%; background: #ff9800;"
+                    ></div>
+                </div>
+            </div>
+
+            <div class="status-item">
+                <div class="status-label">
+                    <span>たいりょく</span>
+                    <span id="val-energy">50%</span>
+                </div>
+                <div class="bar-bg">
+                    <div
+                        id="bar-energy"
+                        class="bar-fill"
+                        style="width: 50%; background: #4caf50;"
+                    ></div>
+                </div>
+            </div>
+
+            <div class="status-item">
+                <div class="status-label">
+                    <span>なつき度</span>
+                    <span id="val-affection">50%</span>
+                </div>
+                <div class="bar-bg">
+                    <div
+                        id="bar-affection"
+                        class="bar-fill"
+                        style="width: 50%; background: #e91e63;"
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-grid">
+            <button class="feed" onclick="feedPet()">
+                🍚 ごはん
+            </button>
+
+            <button class="play" onclick="playPet()">
+                🎾 あそぶ
+            </button>
+
+            <button class="sleep" onclick="sleepPet()">
+                🌙 ねかせる
+            </button>
+
+            <button class="play" onclick="passTime()">
+                ⌛ なにもしない
+            </button>
+
+            <button class="reset" onclick="resetPet()">
+                🔄 はじめから
+            </button>
+        </div>
+
+        <div id="error-message" class="error-message"></div>
     </div>
-    <div class="status-item">
-      <div class="status-label"><span>たいりょく</span><span id="val-energy">50%</span></div>
-      <div class="bar-bg"><div id="bar-energy" class="bar-fill" style="width: 50%; background: #4caf50;"></div></div>
-    </div>
-    <div class="status-item">
-      <div class="status-label"><span>なつき度</span><span id="val-affection">50%</span></div>
-      <div class="bar-bg"><div id="bar-affection" class="bar-fill" style="width: 50%; background: #e91e63;"></div></div>
-    </div>
-  </div>
 
-  <div class="btn-grid">
-    <button class="feed" onclick="feedPet()">🍚 ごはん</button>
-    <button class="play" onclick="playPet()">🎾 あそぶ</button>
-    <button class="sleep" onclick="sleepPet()">🌙 ねかせる</button>
-    <button class="play" onclick="passTime()">⌛ なにもしない</button>
-    <button class="reset" onclick="resetPet()">🔄 はじめから</button>
-  </div>
-</div>
+    <script>
+        // FastAPIのURL
+        const API_BASE_URL = 'http://127.0.0.1:8000';
 
-<script>
-  // APIのURL（ローカル実行時のアドレス）
-  const API_BASE_URL = 'http://127.0.0.1:8000';
+        let pet = {
+            stage: 0,
+            hunger: 50,
+            energy: 50,
+            affection: 50,
+            turns: 0,
+            isAlive: true,
+            message: 'たまごを温めて育てよう！'
+        };
 
-  let pet = {
-    stage: 0,
-    hunger: 50,
-    energy: 50,
-    affection: 50,
-    turns: 0,
-    isAlive: true
-  };
+        // 画面の状態を更新
+        function updateUI() {
+            document.getElementById('val-hunger').innerText =
+                pet.hunger + '%';
+            document.getElementById('bar-hunger').style.width =
+                pet.hunger + '%';
 
-  function getAvatar() {
-    if (!pet.isAlive) return '💀';
-    if (pet.stage === 0) return '🥚';
-    if (pet.stage === 1) return '🐣';
-    if (pet.stage === 2) {
-      return pet.affection > 70 ? '🦄' : '🐱';
-    }
-    return '🐣';
-  }
+            document.getElementById('val-energy').innerText =
+                pet.energy + '%';
+            document.getElementById('bar-energy').style.width =
+                pet.energy + '%';
 
-  function updateUI() {
-    document.getElementById('pet-avatar').innerText = getAvatar();
-    
-    document.getElementById('val-hunger').innerText = pet.hunger + '%';
-    document.getElementById('bar-hunger').style.width = pet.hunger + '%';
+            document.getElementById('val-affection').innerText =
+                pet.affection + '%';
+            document.getElementById('bar-affection').style.width =
+                pet.affection + '%';
 
-    document.getElementById('val-energy').innerText = pet.energy + '%';
-    document.getElementById('bar-energy').style.width = pet.energy + '%';
+            // ペット画像は常に /toimaru.png を表示する
+            document.getElementById('pet-avatar').src = '/images/toimaru.png';
 
-    document.getElementById('val-affection').innerText = pet.affection + '%';
-    document.getElementById('bar-affection').style.width = pet.affection + '%';
+            // ゲームの状態をブラウザに保存
+            localStorage.setItem('web_pet_save', JSON.stringify(pet));
 
-    localStorage.setItem('web_pet_save', JSON.stringify(pet));
-  }
+            // 死亡時は操作ボタンを無効にする
+            document.querySelectorAll('.btn-grid button:not(.reset)')
+                .forEach(button => {
+                    button.disabled = !pet.isAlive;
+                });
+        }
 
-  function setMessage(msg) {
-    document.getElementById('message').innerText = msg;
-    const avatar = document.getElementById('pet-avatar');
-    avatar.classList.remove('bounce');
-    void avatar.offsetWidth;
-    avatar.classList.add('bounce');
-  }
+        // メッセージを表示して画像を跳ねさせる
+        function setMessage(msg) {
+            document.getElementById('message').innerText = msg;
 
-  // --- FastAPI呼び出し用の共通関数 ---
-  async function sendAction(endpoint) {
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pet)
-      });
-      const data = await response.json();
-      
-      // FastAPIから受け取った最新のステータスで更新
-      pet = data;
-      setMessage(pet.message);
-      updateUI();
-    } catch (error) {
-      console.error('API通信エラー:', error);
-      setMessage('サーバーとの通信に失敗しました');
-    }
-  }
+            const avatar = document.getElementById('pet-avatar');
 
-  function feedPet() { sendAction('/api/pet/feed'); }
-  function playPet() { sendAction('/api/pet/play'); }
-  function sleepPet() { sendAction('/api/pet/sleep'); }
-  function passTime() { sendAction('/api/pet/pass_time'); }
+            avatar.classList.remove('bounce');
 
-  async function resetPet() {
-    if (confirm('最初からやり直しますか？')) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/pet/init`);
-        pet = await response.json();
-        setMessage('たまごを温めて育てよう！');
-        updateUI();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }
+            // アニメーションを再実行する
+            void avatar.offsetWidth;
 
-  // ロード処理
-  function loadGame() {
-    const saved = localStorage.getItem('web_pet_save');
-    if (saved) {
-      pet = JSON.parse(saved);
-    }
-    updateUI();
-  }
+            avatar.classList.add('bounce');
+        }
 
-  loadGame();
-</script>
+        // エラー表示
+        function showError(msg = '') {
+            document.getElementById('error-message').innerText = msg;
+        }
 
+        // FastAPIとの共通通信処理
+        async function sendAction(endpoint) {
+            showError('');
+
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}${endpoint}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(pet)
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        `サーバーエラー: ${response.status}`
+                    );
+                }
+
+                const data = await response.json();
+
+                pet = data;
+
+                setMessage(pet.message);
+                updateUI();
+
+            } catch (error) {
+                console.error('API通信エラー:', error);
+
+                setMessage('サーバーとの通信に失敗しました');
+                showError(
+                    'FastAPIが起動しているか確認してください。'
+                );
+            }
+        }
+
+        // 各操作
+        function feedPet() {
+            sendAction('/api/pet/feed');
+        }
+
+        function playPet() {
+            sendAction('/api/pet/play');
+        }
+
+        function sleepPet() {
+            sendAction('/api/pet/sleep');
+        }
+
+        function passTime() {
+            sendAction('/api/pet/pass_time');
+        }
+
+        // 最初からやり直す
+        async function resetPet() {
+            if (!confirm('最初からやり直しますか？')) {
+                return;
+            }
+
+            showError('');
+
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/api/pet/init`
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        `サーバーエラー: ${response.status}`
+                    );
+                }
+
+                pet = await response.json();
+
+                setMessage('たまごを温めて育てよう！');
+                updateUI();
+
+            } catch (error) {
+                console.error('初期化エラー:', error);
+
+                showError(
+                    '初期化できませんでした。FastAPIを確認してください。'
+                );
+            }
+        }
+
+        // 保存されたゲーム状態を読み込む
+        function loadGame() {
+            const saved = localStorage.getItem('web_pet_save');
+
+            if (saved) {
+                try {
+                    pet = JSON.parse(saved);
+                } catch (error) {
+                    console.error(
+                        '保存データの読み込みに失敗しました:',
+                        error
+                    );
+                }
+            }
+
+            updateUI();
+        }
+
+        async function loadPetFromDatabase() {
+            try {
+                const response = await fetch(
+                    `${API_BASE_URL}/api/pet/state`
+                );
+
+                if (!response.ok) {
+                    throw new Error('ペット情報を取得できませんでした');
+                }
+
+                const data = await response.json();
+
+                pet = {
+                    stage: data.stage,
+                    hunger: data.hunger,
+                    energy: data.energy,
+                    affection: data.affection,
+                    turns: data.turns,
+                    isAlive: data.isAlive,
+                    message: data.message
+                };
+
+                setMessage(pet.message);
+                updateUI();
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // ページ読み込み時に実行
+        loadPetFromDatabase();
+        // loadGame();
+
+        setInterval(() => {
+    loadPetFromDatabase();
+}, 3000);
+    </script>
 </body>
 </html>
