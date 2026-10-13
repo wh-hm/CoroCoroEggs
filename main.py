@@ -78,6 +78,11 @@ def init_pet():
     return get_pet_state_for_api()
 
 
+@app.get("/list")
+def read_list():
+    return FileResponse(BASE_DIR / "list.html")
+
+
 def get_pet_state_for_api():
     pet = get_pet_state()
     pet["isAlive"] = bool(pet.pop("is_alive"))

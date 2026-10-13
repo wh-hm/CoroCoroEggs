@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全シリーズ比較一覧</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f6f8;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        /* 全体のコンテナ */
+        .comparison-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        /* 各シリーズの行 */
+        .series-row {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 140px repeat(6, 1fr);
+            gap: 10px;
+            align-items: center;
+        }
+        /* 一番左のシリーズ名・ヘッダーラベル */
+        .series-label {
+            font-size: 15px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            background: #e9ecef;
+            padding: 12px 8px;
+            border-radius: 6px;
+        }
+        /* 画像カード */
+        .image-card {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 6px;
+            text-align: center;
+            border: 1px solid #e1e4e8;
+            height: 100px; /* カードの高さを固定して綺麗に並べる */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        /* ヘッダー行のカード用 */
+        .header-card {
+            background: #333;
+            color: #fff;
+            font-weight: bold;
+            font-size: 12px;
+            height: 40px;
+        }
+        /* 画像が切れないように全体を収める設定 */
+        .image-card img {
+            max-width: 100%;
+            max-height: 85px; /* カードの高さに合わせて調整 */
+            width: auto;
+            height: auto;
+            object-fit: contain; /* 見切れないように全体を表示 */
+            border-radius: 4px;
+        }
+        .image-card p {
+            margin: 4px 0 0;
+            font-size: 11px;
+            color: #666;
+        }
+        /* レスポンシブ（画面が狭いときは横スクロール可能に） */
+        @media (max-width: 1024px) {
+            body {
+                overflow-x: auto;
+            }
+            .comparison-container {
+                min-width: 1000px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>ペット進化・全シリーズ比較一覧</h1>
+
+    <div class="comparison-container" id="comparison-container"></div>
+
+    <script>
+        const container = document.getElementById('comparison-container');
+        
+        // 5つのシリーズ定義
+        const seriesList = ['cute', 'normal', 'rock', 'narcissist', 'neet'];
+        const seriesNameList = ['かわいい', 'ふつう', 'ロック', 'ナルシスト', 'ニート'];
+
+        // ヘッダー行の生成
+        const rowCol = document.createElement('div');
+        rowCol.className = 'series-row';
+
+        const labelCol = document.createElement('div');
+        labelCol.className = 'series-label';
+        labelCol.textContent = 'カテゴリー';
+        rowCol.appendChild(labelCol);
+
+        for (let i = 1; i <= 6; i++) {
+            const card = document.createElement('div');
+            card.className = 'image-card header-card';
+            card.innerHTML = `成長過程 ${i}`;
+            rowCol.appendChild(card);
+        }
+        container.appendChild(rowCol);
+
+        // 各シリーズの行を生成
+        seriesList.forEach((series, index) => {
+            const row = document.createElement('div');
+            row.className = 'series-row';
+
+            // 一番左の列（シリーズ名）
+            const label = document.createElement('div');
+            label.className = 'series-label';
+            label.textContent = seriesNameList[index];
+            row.appendChild(label);
+
+            // 1〜6列目の画像カードを生成
+            for (let i = 1; i <= 6; i++) {
+                const fileName = (i === 1) ? "egg_1" : `${series}_${i}`;
+
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                card.innerHTML = `
+                    <img src="images/${fileName}.png" alt="${fileName}">
+                `;
+                row.appendChild(card);
+            }
+
+            container.appendChild(row);
+        });
+    </script>
+
+</body>
+</html>
