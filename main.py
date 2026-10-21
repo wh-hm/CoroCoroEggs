@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from contextlib import asynccontextmanager
 
@@ -7,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
+import random
 
 from database import (
     init_db,
@@ -16,7 +16,7 @@ from database import (
     save_pet_state,
     count_voice_logs,
     count_growth_words,
-    reset_pet_state,
+    soft_delete_all_data,
 )
 
 
@@ -41,8 +41,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 画像フォルダを配信する
-# images フォルダが存在する場合に利用する
 if (BASE_DIR / "images").is_dir():
     app.mount(
         "/images",
@@ -51,19 +49,26 @@ if (BASE_DIR / "images").is_dir():
     )
 
 
+class CategoryScore(BaseModel):
+    name: str = Field(min_length=1, max_length=50)
+    score: int = Field(default=1, ge=1)
+
+
 class VoiceData(BaseModel):
     recognized_text: str = Field(min_length=1, max_length=5000)
-    category: str = Field(min_length=1, max_length=50)
+    categories: list[CategoryScore] = Field(default_factory=list)
 
 
 class PetState(BaseModel):
-    stage: int = 0
+    stage: int = 1
     hunger: int = 50
     energy: int = 50
     affection: int = 50
     turns: int = 0
     isAlive: bool = True
     message: str = "たまごを温めて育てよう！"
+    is_evolved: int = 0
+    evolved_category: str | None = None
 
 
 @app.get("/")
@@ -73,8 +78,8 @@ def read_root():
 
 @app.get("/api/pet/init")
 def init_pet():
-    # ペットを初期状態に戻す
-    reset_pet_state()
+    # 設定タブのボタンから呼ばれた際、物理削除ではなく論理削除＋初期化を実行
+    soft_delete_all_data()
     return get_pet_state_for_api()
 
 
@@ -96,13 +101,7 @@ def process_turn(pet: dict, manual: bool = False) -> dict:
     pet["turns"] += 1
     pet["hunger"] = max(0, pet["hunger"] - 10)
 
-    if pet["stage"] == 0 and pet["turns"] >= 2:
-        pet["stage"] = 1
-        pet["message"] = "たまごから赤ちゃんが生まれました！"
-    elif pet["stage"] == 1 and pet["turns"] >= 8:
-        pet["stage"] = 2
-        pet["message"] = "ペットが大人の姿に進化しました！"
-    elif manual:
+    if manual:
         pet["message"] = "時間を過ごしました。"
 
     if pet["hunger"] <= 0:
@@ -176,59 +175,124 @@ def pass_time_api(pet: PetState):
     return state
 
 
-
 @app.post("/api/voice")
 def receive_voice(data: VoiceData):
     recognized_text = data.recognized_text.strip()
-    category = data.category.strip()
-
     if not recognized_text:
         raise HTTPException(
             status_code=400,
             detail="音声認識結果が空です。",
         )
 
-    if not category:
-        raise HTTPException(
-            status_code=400,
-            detail="音声認識カテゴリー結果が空です。",
-        )
+    current_pet = get_pet_state()
+    # すでに死亡（ゲームオーバー）している場合は音声入力を受け付けない
+    if int(current_pet.get("is_alive", 1)) == 0:
+        pet_api = get_pet_state_for_api()
+        return {
+            "message": "たまごはすでに心を閉ざしています…。",
+            "pet": pet_api,
+        }
 
-    # ① 音声認識結果をDBへ保存
-    log_id = save_voice_text(recognized_text, category)
+    current_stage = int(current_pet.get("stage", 1))
 
-    # ② 保存後に成長条件を判定
+    categories_data = []
+    for c in data.categories:
+        categories_data.append({"name": c.name.strip(), "score": int(c.score)})
+
+    # 1. ログとしてDBに保存
+    log_id = save_voice_text(recognized_text, categories_data, current_step=current_stage)
+
+    # 2. 悪口ポイント（insult）および謝罪（apology）のポイント変動処理
+    insult_points = int(current_pet.get("insult_points", 0))
+    point_message_addon = ""
+
+    for c in categories_data:
+        c_name = c["name"].lower()
+        c_score = c["score"]
+        if c_name == "insult":
+            # 1回につき5〜10ポイント増加（scoreに応じて変動）
+            insult_points += c_score * 10
+            point_message_addon = "（悪口を言われて怯えている…）"
+        elif c_name == "apology":
+            # 謝罪による救済（15ポイント減少、0未満にはしない）
+            insult_points -= 15
+            if insult_points < 0:
+                insult_points = 0
+            point_message_addon = "（素直に謝罪を受け入れたようだ）"
+
+    current_pet["insult_points"] = insult_points
+
+    # 3. 悪口ポイントが100に達した場合のゲームオーバー判定
+    if insult_points >= 100:
+        current_pet["is_alive"] = 0
+        current_pet["message"] = "悪口を言いすぎたせいで、たまごが完全に心を閉ざしてしまった……（ゲームオーバー）"
+        save_pet_state(current_pet)
+        pet_api = get_pet_state_for_api()
+        return {
+            "message": current_pet["message"],
+            "id": log_id,
+            "recognized_text": recognized_text,
+            "categories": categories_data,
+            "pet": pet_api,
+        }
+
+    # 4. 通常のステージ進化などの集計処理
     total_logs = count_voice_logs()
     growth_words = count_growth_words()
 
     pet = get_pet_state_for_api()
-    old_stage = pet["stage"]
+    main_category = (pet.get("evolved_category") or "").lower().strip()
 
-    # ③ 件数と文章内容の両方を満たしたら成長
-    if total_logs >= 5 and growth_words >= 1:
-        pet["stage"] = max(pet["stage"], 1)
+    updated_logs = get_voice_logs()
+    counts = {
+        "cute": 0,
+        "normal": 0,
+        "rock": 0,
+        "narcissist": 0,
+        "neet": 0,
+        "insult": 0
+    }
 
-    if total_logs >= 15 and growth_words >= 3:
-        pet["stage"] = max(pet["stage"], 2)
+    for log in updated_logs:
+        for cat in log.get("categories", []):
+            if int(cat.get("step", 1)) == int(pet["stage"]):
+                c_name = cat.get("category_name", "").lower().strip()
+                raw_score = int(cat.get("score", 1))
+                
+                multiplier = 2 if (int(pet["stage"]) >= 2 and main_category and c_name == main_category) else 1
+                effective_score = raw_score * multiplier
 
-    if pet["stage"] > old_stage:
-        if pet["stage"] == 1:
-            pet["message"] = "音声の記録がたまって、赤ちゃんに成長したよ！"
-        elif pet["stage"] == 2:
-            pet["message"] = "たくさん記録したね！大人に成長したよ！"
+                if c_name in counts:
+                    counts[c_name] += effective_score
+
+    exceeded = {k: v for k, v in counts.items() if v >= 100}
+    if exceeded:
+        if pet["stage"] >= 6:
+            pet["message"] = "最高ステップ（ステージ6）に到達しています！"
+        else:
+            max_val = max(exceeded.values())
+            top_categories = [k for k, v in exceeded.items() if v == max_val]
+            chosen_category = random.choice(top_categories)
+
+            pet["stage"] += 1
+            pet["evolved_category"] = chosen_category
+            pet["is_evolved"] = 1
+            pet["message"] = f"おめでとう！{chosen_category}の力が極まり、ステップ {pet['stage']} に進化したよ！"
     else:
-        pet["message"] = (
-            f"音声を記録したよ！（保存件数：{total_logs}件）"
-        )
+        if point_message_addon:
+            pet["message"] = f"音声を記録したよ！ {point_message_addon} (悪口P: {insult_points}/100)"
+        else:
+            pet["message"] = f"音声を記録したよ！（保存件数：{total_logs}件）"
 
-    # ④ 成長後の状態をDBへ保存
+    # ポイントの変更を反映して保存
+    pet["insult_points"] = insult_points
     save_pet_state(pet)
 
     return {
         "message": pet["message"],
         "id": log_id,
         "recognized_text": recognized_text,
-        "category": category,
+        "categories": categories_data,
         "total_logs": total_logs,
         "growth_words": growth_words,
         "stage": pet["stage"],

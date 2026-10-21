@@ -1,10 +1,12 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>マイペット</title>
+
+    <!-- Chart.jsのCDN（レーダーチャート用） -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         * {
@@ -60,37 +62,38 @@
             justify-content: center;
             align-items: center;
             width: 100%;
-            min-height: 340px;
+            min-height: 300px;
             padding: 10px;
             background: #ffffff;
             border-radius: 18px;
+            position: relative;
         }
 
         .pet-avatar img {
             display: block;
             width: 100%;
-            max-width: 380px;
-            height: 340px;
+            max-width: 340px;
+            height: 300px;
             object-fit: contain;
             transition: transform 0.3s ease;
             user-select: none;
         }
 
-        .pet-avatar img.bounce {
-            animation: bounce 0.5s ease;
+        /* ステップ表示バッジ */
+        .step-insultge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: #ff6b81;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        @keyframes bounce {
-            0%, 100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(-10px);
-            }
-        }
-
-        /* 音声記録エリア */
+        /* タブ・チャットエリア */
         .chat-section {
             display: flex;
             flex-direction: column;
@@ -98,53 +101,112 @@
             gap: 10px;
         }
 
-        .chat-title {
+        /* タブのスタイル */
+        .tab-buttons {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #555;
-            font-size: 1rem;
-            font-weight: bold;
+            gap: 4px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 4px;
+            flex-wrap: wrap;
         }
 
-        /* この部分だけスクロール */
+        .tab-btn {
+            padding: 8px 10px;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .tab-btn.active {
+            background: #ffffff;
+            color: #ff6b81;
+            border: 2px solid #ddd;
+            border-bottom: none;
+        }
+
+        .tab-btn.settings-tab {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+        .tab-btn.settings-tab.active {
+            background: #ffffff;
+            color: #2d3748;
+        }
+
+        /* タブの中身コンテナ */
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 0 14px 14px 14px;
+            padding: 16px;
+            text-align: left;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* 設定タブの中身デザイン */
+        .settings-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 10px;
+            align-items: center;
+            text-align: center;
+        }
+
+        .settings-desc {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .logic-delete-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 2px 5px rgba(229, 62, 62, 0.3);
+        }
+
+        .logic-delete-btn:hover {
+            background: #c53030;
+        }
+
+        /* 音声履歴エリア */
         .chat-history {
             display: flex;
             flex-direction: column;
             align-items: stretch;
             gap: 12px;
             width: 100%;
-            height: 240px;
-            padding: 16px;
+            height: 220px;
             overflow-y: auto;
-            overscroll-behavior: contain;
-            background: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 14px;
-            text-align: left;
             scroll-behavior: smooth;
         }
 
-        /* スクロールバー */
         .chat-history::-webkit-scrollbar {
             width: 7px;
         }
-
-        .chat-history::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
         .chat-history::-webkit-scrollbar-thumb {
             background: #c5c5c5;
             border-radius: 10px;
         }
 
-        .chat-history::-webkit-scrollbar-thumb:hover {
-            background: #999;
-        }
-
-        /* 吹き出しと時刻 */
         .chat-entry {
             display: flex;
             flex-direction: column;
@@ -173,7 +235,6 @@
             font-size: 0.72rem;
         }
 
-        /* 記録がないとき */
         .chat-empty {
             display: flex;
             flex: 1;
@@ -182,171 +243,128 @@
             padding: 20px 8px;
             color: #888;
             font-size: 0.95rem;
-            line-height: 1.7;
             text-align: center;
         }
 
-        /* エラーメッセージ */
+        /* レーダーチャートとスコア・悪口度エリア */
+        .stats-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .chart-wrapper {
+            width: 100%;
+            max-width: 400px;
+            height: 220px;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .score-text-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            background: #f8f9fa;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 0.9rem;
+            color: #333;
+        }
+
+        .score-item {
+            background: #ffffff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e0;
+        }
+
+        .score-item span {
+            font-weight: bold;
+            color: #ff6b81;
+        }
+
+        .step-total-card {
+            width: 100%;
+            background: #ebf8ff;
+            border: 2px solid #3182ce;
+            border-radius: 10px;
+            padding: 8px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #2b6cb0;
+        }
+
+        .insult-mouth-card {
+            width: 100%;
+            background: #fff5f5;
+            border: 2px solid #ff6b6b;
+            border-radius: 12px;
+            padding: 10px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .insult-mouth-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .insult-mouth-title {
+            font-weight: bold;
+            color: #c53030;
+            font-size: 0.9rem;
+        }
+
+        .insult-mouth-value {
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #e53e3e;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #fed7d7;
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ff8787, #e53e3e);
+            border-radius: 6px;
+            transition: width 0.4s ease;
+        }
+
         .error-message {
             width: 100%;
             color: #d32f2f;
             font-size: 0.85rem;
-            overflow-wrap: anywhere;
+            margin-top: 8px;
             text-align: left;
         }
 
-        /* スマートフォン対応 */
         @media (max-width: 600px) {
-            body {
-                padding: 12px;
-            }
-
-            .container {
-                padding: 16px;
-                border-radius: 18px;
-            }
-
-            h1 {
-                font-size: 1.5rem;
-                margin-bottom: 16px;
-            }
-
-            .screen {
-                padding: 12px;
-                gap: 16px;
-            }
-
-            .pet-avatar {
-                min-height: 240px;
-                padding: 6px;
-            }
-
-            .pet-avatar img {
-                height: 240px;
-                max-width: 100%;
-            }
-
-            .chat-history {
-                height: 220px;
-                padding: 12px;
-            }
-
-            .chat-message {
-                max-width: 95%;
-                font-size: 0.9rem;
-            }
+            body { padding: 12px; }
+            .container { padding: 16px; }
+            h1 { font-size: 1.4rem; }
+            .pet-avatar img { height: 240px; }
+            .chat-history { height: 180px; }
+            .chart-wrapper { height: 180px; }
         }
-
-        
-        /* スマートフォン対応 */
-        @media (max-width: 600px) {
-            html {
-                width: 100%;
-                min-height: 100%;
-            }
-
-            body {
-                display: block;
-                padding: 10px;
-                min-height: 100vh;
-
-            }
-
-            .container {
-                width: 100%;
-                max-width: none;
-                min-height: 0;
-                height: calc(100vh - 20px);
-                padding: 14px;
-                border-radius: 18px;
-            }
-
-            h1 {
-                font-size: 1.4rem;
-                margin-bottom: 14px;
-            }
-
-            .screen {
-                width: 100%;
-                padding: 12px;
-                gap: 16px;
-                border-radius: 16px;
-            }
-
-            /* ペットを大きく表示 */
-            .pet-avatar {
-                width: 100%;
-                min-height: 0;
-                padding: 8px;
-                border-radius: 14px;
-            }
-
-            .pet-avatar img {
-                width: 100%;
-                max-width: 100%;
-                height: min(48vh, 360px);
-                min-height: 220px;
-                object-fit: contain;
-            }
-
-            /* 音声記録 */
-            .chat-section {
-                width: 100%;
-                gap: 8px;
-            }
-
-            .chat-title {
-                font-size: 0.95rem;
-            }
-
-            /* 記録欄だけスクロール */
-            .chat-history {
-                width: 100%;
-                height: 30vh;
-                /* min-height: 160px; */
-                /* max-height: 260px; */
-                padding: 12px;
-                gap: 10px;
-                border-radius: 12px;
-                overflow-y: auto;
-                -webkit-overflow-scrolling: touch;
-                height: calc(100vh - 575px);
-            }
-
-            .chat-message {
-                max-width: 95%;
-                padding: 10px 13px;
-                font-size: 0.9rem;
-                line-height: 1.6;
-            }
-
-            .chat-time {
-                font-size: 0.7rem;
-            }
-
-            .chat-empty {
-                font-size: 0.9rem;
-            }
-
-            .error-message {
-                font-size: 0.8rem;
-            }
-        }
-
-        /* 特に画面の高さが小さいスマートフォン */
-        @media (max-width: 600px) and (max-height: 700px) {
-            .pet-avatar img {
-                height: 35vh;
-                min-height: 180px;
-            }
-
-            .chat-history {
-                height: 25vh;
-                min-height: 130px;
-                max-height: 200px;
-            }
-        }
-
     </style>
 </head>
 
@@ -359,6 +377,7 @@
 
                 <!-- ペット画像 -->
                 <div class="pet-avatar">
+                    <div class="step-insultge" id="step-insultge">ステップ 1</div>
                     <img
                         id="pet-avatar"
                         src="/images/egg_1.png"
@@ -366,20 +385,135 @@
                     >
                 </div>
 
-                <!-- 音声記録 -->
+                <!-- タブ・チャットエリア -->
                 <div class="chat-section">
-                    <div class="chat-title">
-                        💬 音声の記録
+                    <!-- タブボタン（ステップ1〜6 ＋ 設定タブ） -->
+                    <div class="tab-buttons">
+                        <button class="tab-btn active" onclick="switchTab('logs', event)">💬 記録</button>
+                        <button class="tab-btn" onclick="switchTab('stats-1', event)">📊 S1</button>
+                        <button class="tab-btn" onclick="switchTab('stats-2', event)">📊 S2</button>
+                        <button class="tab-btn" onclick="switchTab('stats-3', event)">📊 S3</button>
+                        <button class="tab-btn" onclick="switchTab('stats-4', event)">📊 S4</button>
+                        <button class="tab-btn" onclick="switchTab('stats-5', event)">📊 S5</button>
+                        <button class="tab-btn" onclick="switchTab('stats-6', event)">📊 S6</button>
+                        <button class="tab-btn settings-tab" onclick="switchTab('settings', event)">⚙️ 設定</button>
                     </div>
 
-                    <div
-                        class="chat-history"
-                        id="chat-history"
-                        aria-live="polite"
-                        aria-label="音声認識テキストの履歴"
-                    >
-                        <div class="chat-empty" id="chat-empty">
-                            音声が届くのを待っているよ！
+                    <!-- タブ1: 音声の記録一覧 -->
+                    <div class="tab-content active" id="tab-logs">
+                        <div
+                            class="chat-history"
+                            id="chat-history"
+                            aria-live="polite"
+                            aria-label="音声認識テキストの履歴"
+                        >
+                            <div class="chat-empty" id="chat-empty">
+                                音声が届くのを待っているよ！
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ステップ1〜6 の統計タブ -->
+                    <div class="tab-content" id="tab-stats-1">
+                        <div class="stats-container">
+                            <div class="chart-wrapper"><canvas id="radarChart-1"></canvas></div>
+                            <div class="score-text-list" id="score-list-1"></div>
+                            <div class="insult-mouth-card">
+                                <div class="insult-mouth-header">
+                                    <span class="insult-mouth-title">😈 悪口・トゲトゲ度 (Step 1)</span>
+                                    <span class="insult-mouth-value" id="insult-mouth-score-1">0 pt</span>
+                                </div>
+                                <div class="progress-bar-container"><div class="progress-bar-fill" id="insult-mouth-bar-1"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-stats-2">
+                        <div class="stats-container">
+                            <div class="chart-wrapper"><canvas id="radarChart-2"></canvas></div>
+                            <div class="step-total-card"><span>📈 ステップ2 合計ポイント (insult除く):</span><span id="step-total-2">0 pt</span></div>
+                            <div class="score-text-list" id="score-list-2"></div>
+                            <div class="insult-mouth-card">
+                                <div class="insult-mouth-header">
+                                    <span class="insult-mouth-title">😈 悪口・トゲトゲ度 (Step 2)</span>
+                                    <span class="insult-mouth-value" id="insult-mouth-score-2">0 pt</span>
+                                </div>
+                                <div class="progress-bar-container"><div class="progress-bar-fill" id="insult-mouth-bar-2"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-stats-3">
+                        <div class="stats-container">
+                            <div class="chart-wrapper"><canvas id="radarChart-3"></canvas></div>
+                            <div class="step-total-card"><span>📈 ステップ3 合計ポイント (insult除く):</span><span id="step-total-3">0 pt</span></div>
+                            <div class="score-text-list" id="score-list-3"></div>
+                            <div class="insult-mouth-card">
+                                <div class="insult-mouth-header">
+                                    <span class="insult-mouth-title">😈 悪口・トゲトゲ度 (Step 3)</span>
+                                    <span class="insult-mouth-value" id="insult-mouth-score-3">0 pt</span>
+                                </div>
+                                <div class="progress-bar-container"><div class="progress-bar-fill" id="insult-mouth-bar-3"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-stats-4">
+                        <div class="stats-container">
+                            <div class="chart-wrapper"><canvas id="radarChart-4"></canvas></div>
+                            <div class="step-total-card"><span>📈 ステップ4 合計ポイント (insult除く):</span><span id="step-total-4">0 pt</span></div>
+                            <div class="score-text-list" id="score-list-4"></div>
+                            <div class="insult-mouth-card">
+                                <div class="insult-mouth-header">
+                                    <span class="insult-mouth-title">😈 悪口・トゲトゲ度 (Step 4)</span>
+                                    <span class="insult-mouth-value" id="insult-mouth-score-4">0 pt</span>
+                                </div>
+                                <div class="progress-bar-container"><div class="progress-bar-fill" id="insult-mouth-bar-4"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-stats-5">
+                        <div class="stats-container">
+                            <div class="chart-wrapper"><canvas id="radarChart-5"></canvas></div>
+                            <div class="step-total-card"><span>📈 ステップ5 合計ポイント (insult除く):</span><span id="step-total-5">0 pt</span></div>
+                            <div class="score-text-list" id="score-list-5"></div>
+                            <div class="insult-mouth-card">
+                                <div class="insult-mouth-header">
+                                    <span class="insult-mouth-title">😈 悪口・トゲトゲ度 (Step 5)</span>
+                                    <span class="insult-mouth-value" id="insult-mouth-score-5">0 pt</span>
+                                </div>
+                                <div class="progress-bar-container"><div class="progress-bar-fill" id="insult-mouth-bar-5"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-stats-6">
+                        <div class="stats-container">
+                            <div class="chart-wrapper"><canvas id="radarChart-6"></canvas></div>
+                            <div class="step-total-card"><span>📈 ステップ6 合計ポイント (insult除く):</span><span id="step-total-6">0 pt</span></div>
+                            <div class="score-text-list" id="score-list-6"></div>
+                            <div class="insult-mouth-card">
+                                <div class="insult-mouth-header">
+                                    <span class="insult-mouth-title">😈 悪口・トゲトゲ度 (Step 6)</span>
+                                    <span class="insult-mouth-value" id="insult-mouth-score-6">0 pt</span>
+                                </div>
+                                <div class="progress-bar-container"><div class="progress-bar-fill" id="insult-mouth-bar-6"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 設定タブ -->
+                    <div class="tab-content" id="tab-settings">
+                        <div class="settings-container">
+                            <h3>⚙️ システム設定</h3>
+                            <p class="settings-desc">
+                                データを物理削除せず、論理削除（delete_flag = 1 を設定）して非表示にします。<br>
+                                これにより、過去のデータを保持したままペットを初期状態にリセットできます。
+                            </p>
+                            <button class="logic-delete-btn" onclick="executeSoftDelete()">
+                                🗑️ データを論理削除してリセット
+                            </button>
                         </div>
                     </div>
 
@@ -395,42 +529,73 @@
     </div>
 
     <script>
-        // FastAPIのURL
         const API_BASE_URL = 'http://127.0.0.1:8000';
-
-        // 音声履歴を取得する間隔（ミリ秒）
         const POLLING_INTERVAL = 3000;
 
-        // 取得済みの音声データID
         const displayedIds = new Set();
-
-        // IDがないデータの重複表示を防ぐキー
         const displayedKeys = new Set();
 
-        // ペットの状態
-        let pet = {
-            stage: 0,
-            message: ''
+        let allLogs = []; 
+        let currentPetStage = 1;
+        let currentEvolvedCategory = null;
+        let globalInsultPoints = 0; // バックエンドから取得した悪口ポイントを保持する変数
+
+        let radarCharts = {
+            1: null,
+            2: null,
+            3: null,
+            4: null,
+            5: null,
+            6: null
         };
 
-        // エラー表示
+        function switchTab(tabName, event) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tabName === 'logs') {
+                document.getElementById('tab-logs').classList.add('active');
+            } else if (tabName === 'settings') {
+                document.getElementById('tab-settings').classList.add('active');
+            } else {
+                const match = tabName.match(/stats-(\d+)/);
+                if (match) {
+                    const stepNum = parseInt(match[1]);
+                    document.getElementById(`tab-stats-${stepNum}`).classList.add('active');
+                    updateRadarChartForStep(stepNum);
+                }
+            }
+            event.currentTarget.classList.add('active');
+        }
+
+        async function executeSoftDelete() {
+            if (!confirm("データを物理削除せずに無効化（論理削除）し、ペットを初期状態に戻しますか？")) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/pet/init`, {
+                    method: 'GET'
+                });
+
+                if (!response.ok) throw new Error("初期化に失敗しました");
+
+                alert("データを論理削除（無効化）し、ペットの状態をリセットしました！");
+                location.reload();
+            } catch (error) {
+                console.error("論理削除エラー:", error);
+                showError("処理に失敗しました。");
+            }
+        }
+
         function showError(message = '') {
             document.getElementById('error-message').innerText = message;
         }
 
-        // 時刻を表示用に整える
         function formatTime(value) {
-            if (!value) {
-                return '';
-            }
-
+            if (!value) return '';
             const date = new Date(value);
-
-            // 日付として解釈できない場合は、そのまま表示
-            if (Number.isNaN(date.getTime())) {
-                return String(value);
-            }
-
+            if (Number.isNaN(date.getTime())) return String(value);
             return date.toLocaleString('ja-JP', {
                 month: '2-digit',
                 day: '2-digit',
@@ -439,42 +604,26 @@
             });
         }
 
-        // 吹き出しを追加する
         function addChatMessage(text, time = '', id = null) {
             const history = document.getElementById('chat-history');
 
-            // 同じIDのデータを二重表示しない
             if (id !== null && id !== undefined) {
                 const idKey = String(id);
-
-                if (displayedIds.has(idKey)) {
-                    return;
-                }
-
+                if (displayedIds.has(idKey)) return;
                 displayedIds.add(idKey);
             }
 
-            // 最初の案内メッセージを削除
             const empty = document.getElementById('chat-empty');
+            if (empty) empty.remove();
 
-            if (empty) {
-                empty.remove();
-            }
-
-            // 吹き出しと時刻をまとめる要素
             const entry = document.createElement('div');
             entry.className = 'chat-entry';
 
-            // 吹き出し
             const bubble = document.createElement('div');
             bubble.className = 'chat-message';
-
-            // HTMLとしてではなく文字列として表示
             bubble.innerText = text;
-
             entry.appendChild(bubble);
 
-            // 時刻がある場合のみ表示
             if (time) {
                 const timeLabel = document.createElement('div');
                 timeLabel.className = 'chat-time';
@@ -482,160 +631,214 @@
                 entry.appendChild(timeLabel);
             }
 
-            // 一番下に追加
             history.appendChild(entry);
-
-            // 新しい吹き出しが見える位置までスクロール
             history.scrollTop = history.scrollHeight;
         }
 
-        // APIから返される履歴データの形式を整える
         function normalizeVoiceLogs(data) {
-            if (Array.isArray(data)) {
-                return data;
-            }
-
-            if (data && Array.isArray(data.logs)) {
-                return data.logs;
-            }
-
-            if (data && Array.isArray(data.voice_logs)) {
-                return data.voice_logs;
-            }
-
-            if (data && Array.isArray(data.results)) {
-                return data.results;
-            }
-
-            console.error(
-                '音声履歴APIの返却形式を確認してください:',
-                data
-            );
-
+            if (Array.isArray(data)) return data;
+            if (data && Array.isArray(data.logs)) return data.logs;
+            if (data && Array.isArray(data.voice_logs)) return data.voice_logs;
+            if (data && Array.isArray(data.results)) return data.results;
             return [];
         }
 
-        // DBに保存されている音声履歴を取得
         async function loadVoiceLogs() {
             try {
-                const response = await fetch(
-                    `${API_BASE_URL}/api/voice/logs`,
-                    {
-                        method: 'GET',
-                        cache: 'no-store'
-                    }
-                );
+                const response = await fetch(`${API_BASE_URL}/api/voice/logs`, {
+                    method: 'GET',
+                    cache: 'no-store'
+                });
 
-                if (!response.ok) {
-                    throw new Error(
-                        `音声履歴の取得に失敗しました（HTTP ${response.status}）`
-                    );
-                }
+                if (!response.ok) throw new Error(`音声履歴の取得に失敗しました`);
 
                 const data = await response.json();
-                const logs = normalizeVoiceLogs(data);
+                allLogs = normalizeVoiceLogs(data);
 
-                // DBの取得順に従って表示
-                logs.forEach(log => {
-                    const text =
-                        log.recognized_text ??
-                        log.text ??
-                        log.message ??
-                        '';
+                allLogs.forEach(log => {
+                    if (log.delete_flag === 1 || log.is_deleted === 1) return;
 
+                    const text = log.recognized_text ?? log.text ?? log.message ?? '';
                     const id = log.id ?? log.log_id ?? null;
+                    const time = log.received_at ?? log.created_at ?? log.timestamp ?? '';
 
-                    const time =
-                        log.received_at ??
-                        log.created_at ??
-                        log.timestamp ??
-                        '';
+                    if (typeof text !== 'string' || !text.trim()) return;
 
-                    // 空の文章は表示しない
-                    if (typeof text !== 'string' || !text.trim()) {
-                        return;
-                    }
-
-                    // IDがない場合は文章と時刻で重複を判定
                     if (id === null || id === undefined) {
                         const key = `${text}|${time}`;
-
-                        if (displayedKeys.has(key)) {
-                            return;
-                        }
-
+                        if (displayedKeys.has(key)) return;
                         displayedKeys.add(key);
                     }
 
                     addChatMessage(text, time, id);
                 });
 
+                refreshActiveStats();
                 showError('');
-
             } catch (error) {
                 console.error('音声履歴取得エラー:', error);
-
-                showError(
-                    '音声履歴を取得できません。FastAPIとAPIのURLを確認してください。'
-                );
+                showError('音声履歴を取得できません。');
             }
         }
 
-        // ペットの状態をDBから取得して画像を更新
+        function updateRadarChartForStep(targetStep) {
+            const countsStep = { cute: 0, normal: 0, rock: 0, narcissist: 0, neet: 0 };
+            let stepTotalScore = 0;
+
+            const mainCat = (currentEvolvedCategory || '').toLowerCase().trim();
+
+            allLogs.forEach(log => {
+                if (log.delete_flag === 1 || log.is_deleted === 1) return;
+
+                const categories = log.categories || [];
+                categories.forEach(catObj => {
+                    const logStep = Number(catObj.step) || 1;
+                    const catName = (catObj.category_name || '').toLowerCase().trim();
+                    const rawScore = Number(catObj.score) || 1;
+
+                    if (logStep === targetStep) {
+                        let multiplier = 1;
+                        if (targetStep >= 2 && mainCat && catName === mainCat) {
+                            multiplier = 2;
+                        }
+                        const effectiveScore = rawScore * multiplier;
+
+                        if (countsStep.hasOwnProperty(catName)) {
+                            countsStep[catName] += effectiveScore;
+                        }
+                        if (catName !== 'insult' && catName !== 'apology') {
+                            stepTotalScore += effectiveScore;
+                        }
+                    }
+                });
+            });
+
+            // バックエンドから取得した累計 insult_points を反映する
+            const scoreEl = document.getElementById(`insult-mouth-score-${targetStep}`);
+            const barEl = document.getElementById(`insult-mouth-bar-${targetStep}`);
+
+            if (scoreEl) scoreEl.innerText = `${globalInsultPoints} pt`;
+            if (barEl) {
+                const maxScore = 100; // 100ポイントでゲームオーバー
+                const percentage = Math.min(100, Math.max(0, (globalInsultPoints / maxScore) * 100));
+                barEl.style.width = `${percentage}%`;
+            }
+
+            if (targetStep > 1) {
+                const totalCardEl = document.getElementById(`step-total-${targetStep}`);
+                if (totalCardEl) {
+                    totalCardEl.innerText = `${stepTotalScore} pt`;
+                }
+            }
+
+            const scoreListEl = document.getElementById(`score-list-${targetStep}`);
+            if (scoreListEl) {
+                const labelsMap = { cute: 'かわいい', normal: 'ふつう', rock: 'ロック', narcissist: 'ナルシスト', neet: 'ニート' };
+                scoreListEl.innerHTML = Object.entries(countsStep).map(([key, val]) => 
+                    `<div class="score-item">${labelsMap[key]}: <span>${val} pt</span></div>`
+                ).join('');
+            }
+
+            const chartData = [countsStep.cute, countsStep.normal, countsStep.rock, countsStep.narcissist, countsStep.neet];
+            const canvasElem = document.getElementById(`radarChart-${targetStep}`);
+            if (!canvasElem) return;
+
+            const ctx = canvasElem.getContext('2d');
+            
+            if (radarCharts[targetStep]) {
+                radarCharts[targetStep].data.datasets[0].data = chartData;
+                radarCharts[targetStep].update();
+            } else {
+                radarCharts[targetStep] = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['かわいい', 'ふつう', 'ロック', 'ナルシスト', 'ニート'],
+                        datasets: [{
+                            label: `ステップ ${targetStep} ポイント`,
+                            data: chartData,
+                            backgroundColor: 'rgba(255, 107, 129, 0.2)',
+                            borderColor: 'rgba(255, 107, 129, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(255, 107, 129, 1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: Math.max(100, ...chartData) + 20,
+                                ticks: { stepSize: 20 }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function refreshActiveStats() {
+            for (let i = 1; i <= 6; i++) {
+                const tabElem = document.getElementById(`tab-stats-${i}`);
+                if (tabElem && tabElem.classList.contains('active')) {
+                    updateRadarChartForStep(i);
+                }
+            }
+        }
+
         async function loadPetFromDatabase() {
             try {
-                const response = await fetch(
-                    `${API_BASE_URL}/api/pet/state`,
-                    {
-                        method: 'GET',
-                        cache: 'no-store'
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error(
-                        `ペット情報の取得に失敗しました（HTTP ${response.status}）`
-                    );
-                }
+                const response = await fetch(`${API_BASE_URL}/api/pet/state`, {
+                    method: 'GET',
+                    cache: 'no-store'
+                });
+                if (!response.ok) return;
 
                 const data = await response.json();
-
-                pet = {
-                    stage: data.stage ?? 0,
-                    message: data.message ?? ''
-                };
-
-                // 成長段階に応じた画像
-                // 実際の画像ファイルに合わせて変更可能
                 const avatar = document.getElementById('pet-avatar');
+                const insultge = document.getElementById('step-insultge');
+                
+                currentPetStage = data.stage || 1;
+                currentEvolvedCategory = data.evolved_category || null;
+                insultge.innerText = `ステップ ${currentPetStage}`;
 
-                const images = {
-                    0: '/images/egg_1.png',
-                    1: '/images/egg_1.png',
-                    2: '/images/egg_1.png'
-                };
+                // データベースから最新の insult_points を保持する
+                globalInsultPoints = Number(data.insult_points) || 0;
 
-                const nextImage = images[pet.stage] || images[0];
-
-                if (avatar.getAttribute('src') !== nextImage) {
-                    avatar.src = nextImage;
+                // ゲームオーバー（isAliveがfalse）のときの処理
+                if (data.isAlive === false) {
+                    document.getElementById('pet-title').innerText = "💀 ゲームオーバー（心を閉ざしました）";
                 }
+
+                let targetImage = '/images/egg_1.png';
+
+                if (data.is_evolved === 1 && data.evolved_category) {
+                    targetImage = `/images/${data.evolved_category}_${currentPetStage}.png`;
+                } else {
+                    targetImage = '/images/egg_1.png';
+                }
+
+                if (avatar.getAttribute('src') !== targetImage) {
+                    avatar.src = targetImage;
+                }
+
+                refreshActiveStats();
 
             } catch (error) {
                 console.error('ペット状態取得エラー:', error);
             }
         }
 
-        // ページ読み込み時
         async function initializePage() {
             await Promise.all([
                 loadVoiceLogs(),
                 loadPetFromDatabase()
             ]);
 
-            // 音声履歴とペット状態を定期的に更新
-            setInterval(loadVoiceLogs, POLLING_INTERVAL);
-            setInterval(loadPetFromDatabase, POLLING_INTERVAL);
+            setInterval(async () => {
+                await loadVoiceLogs();
+                await loadPetFromDatabase();
+            }, POLLING_INTERVAL);
         }
 
         initializePage();
