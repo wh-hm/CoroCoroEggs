@@ -184,7 +184,7 @@ def receive_voice(data: VoiceData):
         )
 
     current_pet = get_pet_state()
-    
+
     # 死亡フラグ確認
     if int(current_pet.get("is_alive", 1)) == 0:
         pet_api = get_pet_state_for_api()
@@ -211,7 +211,6 @@ def receive_voice(data: VoiceData):
         c_score = c["score"]
         if c_name == "insult":
             insult_points += c_score * 5
-            # insult_points += c_score * 10
             point_message_addon = "（悪口を言われて怯えている…）"
         elif c_name == "apology":
             insult_points -= 15
@@ -245,12 +244,12 @@ def receive_voice(data: VoiceData):
 
         for cat in log.get("categories", []):
             cat_step = int(cat.get("step") or log_step)
-            
+
             # 現在のステップのログのみ集計
             if cat_step == current_stage:
                 c_name = cat.get("category_name", "").lower().strip()
                 raw_score = int(cat.get("score", 1))
-                
+
                 multiplier = 2 if (current_stage >= 2 and main_category and c_name == main_category) else 1
                 effective_score = raw_score * multiplier
 
@@ -259,6 +258,8 @@ def receive_voice(data: VoiceData):
 
     # 100ポイント判定
     exceeded = {k: v for k, v in counts.items() if v >= 100}
+    evolved_this_turn = False
+
     if exceeded:
         if current_stage >= 6:
             current_pet["message"] = "最高ステップ（ステージ6）に到達しています！"
@@ -270,6 +271,7 @@ def receive_voice(data: VoiceData):
             current_pet["stage"] = current_stage + 1
             current_pet["evolved_category"] = chosen_category
             current_pet["is_evolved"] = 1
+            evolved_this_turn = True
             current_pet["message"] = f"おめでとう！{chosen_category}の力が極まり、ステップ {current_pet['stage']} に進化したよ！"
     else:
         if point_message_addon:
@@ -277,10 +279,16 @@ def receive_voice(data: VoiceData):
         else:
             current_pet["message"] = f"音声を記録したよ！（保存件数：{total_logs}件）"
 
-    # 4. 悪口100pt以上でのみゲームオーバー判定
+    # 4. 悪口100pt以上でゲームオーバー判定
     if insult_points >= 100:
         current_pet["is_alive"] = 0
         current_pet["message"] = "悪口を言いすぎたせいで、たまごが完全に心を閉ざしてしまった……（ゲームオーバー）"
+
+        # ステップ1→2への進化とゲームオーバーが同じ音声処理で発生した場合、
+        # カテゴリーを空にしてDBへ保存する。フロント側はこれを見て other_gameover.png を表示する。
+        # これによりページ再読み込み後も同じ画像判定を維持できる。
+        if evolved_this_turn and current_stage == 1 and int(current_pet.get("stage", 1)) == 2:
+            current_pet["evolved_category"] = None
 
     # DBに状態保存
     save_pet_state(current_pet)

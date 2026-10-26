@@ -843,7 +843,9 @@
                 const insultge = document.getElementById('step-insultge');
                 const gameOverBanner = document.getElementById('game-over-banner');
                 
-                currentPetStage = data.stage || 1;
+                const receivedStage = Number(data.stage) || 1;
+
+                currentPetStage = receivedStage;
                 currentEvolvedCategory = data.evolved_category || null;
                 insultge.innerText = `ステップ ${currentPetStage}`;
 
@@ -864,7 +866,8 @@
                 let targetImage = '/images/egg_1.png';
 
                 if (data.isAlive === false) {
-                    // ゲームオーバー時: カテゴリーがあればそのゲームオーバー画像、なければ other_gameover.png
+                    // バックエンドが同時進化と判定した場合は evolved_category が null になる
+                    // それ以外のゲームオーバーは進化カテゴリー別の画像を表示する
                     if (catName) {
                         targetImage = `/images/${catName}_gameover.png`;
                     } else {
