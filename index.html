@@ -93,6 +93,39 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
+        /* ゲームオーバー時の横幅いっぱいリセットエリア */
+        #game-over-banner {
+            display: none;
+            width: 100%;
+            margin-top: -5px;
+        }
+
+        #game-over-banner.active {
+            display: block;
+        }
+
+        .game-over-reset-btn {
+            width: 100%;
+            display: block;
+            background: linear-gradient(135deg, #ff6b81 0%, #e53e3e 100%);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+            transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+            text-align: center;
+        }
+
+        .game-over-reset-btn:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #ff4757 0%, #c53030 100%);
+            box-shadow: 0 6px 16px rgba(229, 62, 62, 0.4);
+        }
+
         /* タブ・チャットエリア */
         .chat-section {
             display: flex;
@@ -191,7 +224,7 @@
         .chat-history {
             display: flex;
             flex-direction: column;
-            align-items: stretch;
+            align-items: flex-start;
             gap: 12px;
             width: 100%;
             height: 220px;
@@ -244,6 +277,7 @@
             color: #888;
             font-size: 0.95rem;
             text-align: center;
+            width: 100%;
         }
 
         /* レーダーチャートとスコア・悪口度エリア */
@@ -375,7 +409,7 @@
 
             <div class="screen">
 
-                <!-- ペット画像 -->
+                <!-- ペット画像表示エリア -->
                 <div class="pet-avatar">
                     <div class="step-insultge" id="step-insultge">ステップ 1</div>
                     <img
@@ -383,6 +417,13 @@
                         src="/images/egg_1.png"
                         alt="ペット"
                     >
+                </div>
+
+                <!-- 横幅いっぱいのゲームオーバーリセットボタンエリア -->
+                <div id="game-over-banner">
+                    <button class="game-over-reset-btn" onclick="executeSoftDelete()">
+                        🔄 最初からやり直す
+                    </button>
                 </div>
 
                 <!-- タブ・チャットエリア -->
@@ -565,7 +606,9 @@
                     updateRadarChartForStep(stepNum);
                 }
             }
-            event.currentTarget.classList.add('active');
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
         }
 
         async function executeSoftDelete() {
@@ -797,6 +840,7 @@
                 const data = await response.json();
                 const avatar = document.getElementById('pet-avatar');
                 const insultge = document.getElementById('step-insultge');
+                const gameOverBanner = document.getElementById('game-over-banner');
                 
                 currentPetStage = data.stage || 1;
                 currentEvolvedCategory = data.evolved_category || null;
@@ -808,13 +852,32 @@
                 // ゲームオーバー（isAliveがfalse）のときの処理
                 if (data.isAlive === false) {
                     document.getElementById('pet-title').innerText = "💀 ゲームオーバー（心を閉ざしました）";
+                    if (gameOverBanner) gameOverBanner.classList.add('active');
+                } else {
+                    document.getElementById('pet-title').innerText = "🌱 マイペット";
+                    if (gameOverBanner) gameOverBanner.classList.remove('active');
                 }
 
+                // カテゴリーの存在確認と画像設定ロジック
+                const catName = data.evolved_category ? String(data.evolved_category).toLowerCase().trim() : '';
                 let targetImage = '/images/egg_1.png';
 
-                if (data.is_evolved === 1 && data.evolved_category) {
-                    targetImage = `/images/${data.evolved_category}_${currentPetStage}.png`;
+                if (data.isAlive === false) {
+                    // ゲームオーバー時: カテゴリーがあればそのゲームオーバー画像、なければ other_gameover.png
+                    if (catName) {
+                        targetImage = `/images/${catName}_gameover.png`;
+                    } else {
+                        targetImage = '/images/other_gameover.png';
+                    }
+                } else if (data.is_evolved === 1) {
+                    // 通常進化時: カテゴリーがあればそのステージ画像、なければ other_[ステージ].png
+                    if (catName) {
+                        targetImage = `/images/${catName}_${currentPetStage}.png`;
+                    } else {
+                        targetImage = `/images/other_${currentPetStage}.png`;
+                    }
                 } else {
+                    // 通常たまご状態
                     targetImage = '/images/egg_1.png';
                 }
 
